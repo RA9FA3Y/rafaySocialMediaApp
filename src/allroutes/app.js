@@ -1,14 +1,15 @@
 import { Router } from "express";
 import userRouter from "../router/userRouter.js";
 import postRouter from "../router/postRouter.js";
+import AuthenticateMiddleware from "../middleware/authenticate.js";
 import likeRouter from "../router/likeRouter.js";
 import commentRouter from "../router/commentRouter.js";
 
 const allRoutes = Router();
 
-allRoutes.use('/users', userRouter);
-allRoutes.use('/posts', postRouter);
-allRoutes.use('/likes', likeRouter);
-allRoutes.use('/comments', commentRouter);
+allRoutes.use("/user", userRouter);
+allRoutes.use("/post", AuthenticateMiddleware, postRouter);
+allRoutes.use('/likes', AuthenticateMiddleware, likeRouter);
+allRoutes.use('/comments', AuthenticateMiddleware, commentRouter);
 
 export default allRoutes;

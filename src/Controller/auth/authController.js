@@ -1,74 +1,83 @@
-import AuthService from "../../service/AuthService/AuthService.js";
+import { hash, compare } from "bcrypt";
+import userModel from "../../Models/userModel.js";
+import  jwt  from "jsonwebtoken";
+import LoginEmail from "../../email/login.js";
+import RegisterEmail from "../../email/register.js";
 
-const AuthControler = {
-  registerUser: async (req, res) => {
+
+const authController = {
+  register: async (req, res) => {
+    try{
+      const {name, email, password} = req.body;
+      const file= req.file;
+      const user = await userModel.findOne({
+        where: {
+          email,
+        },
+      });
+      if (user) {
+        return res.status(400).json({message:"account exist"});
+      }
+      const hPassword = await hash(password, 10);
+      const result = await cloudinary.uploader.upload(file.buffer, {
+        resource_type: "auto",
+      });
+      await userModel.create({
+        name,
+        email,
+        password,
+      });
+      RegisterEmail({
+        from: "rafaydogar93@gmail.com",
+        to: user.email,
+        subject: "register Verification",
+        text:"Welcome",
+      });
+      return res.status(201).json({message:"Registered"});
+    } catch (error) {
+      return res.status(400).json({error:"something went wrong"});
+    }
+  },
+  login: async (req, res) => {
     try {
-      const user = await AuthService.registerUser(req.body);
-      return res
-        .status(201)
-        .json({ message: "User Registered Sussessfully", user });
+      const {email, password} = req.body;
+      const user= await userModel.findOne({
+        where: {
+          email,
+        },
+      });
+      if (!user) {
+        return res.status(400).json({message:"account with this email does not exist"});
+      }
+      const confirmPassword = await compare(password, user.password);
+      if (!confirmPassword) {
+        return res.status(400).json({message:"invalid"});
+      }
+      const payload = {
+        id: user.id,
+        email,
+      };
+      const token = await Jwt.sign(payload, process.env.JWT_SECRET, {
+        expiresIn: "14d",
+      });
+      LoginEmail ({
+        from: "rafaydogar93@gmail.com",
+        to: user.email,
+        subject: "verification",
+        text:"Welcome to app",
+      });
+      req.session.token = token;
+      req.session.user = payload;
+      await  req.session.save();
+      return res.status(200).json({
+        payload,
+        token,
+        message:"user login successfull",
+      });
     } catch (error) {
       console.log(error);
-      return res.status(500).json({ message: "Bad Request" });
-    }
-  },
-  loginUser: async (req, res) => {
-    try {
-      const user = await AuthService.loginUser(req.body);
-      const { token, message } = user;
-      return res
-        .status(200)
-        .json({ message: "User Loged in Sussceefully", token });
-    } catch (error) {
-      return res.status(403).json({ message: "Bad Requset" });
-    }
-  },
-  getAllUser: async (req, res) => {
-    try {
-      const user = await AuthService.getAllUser();
-      if (!user) {
-        return res.status(400).json({ message: "No User Found" });
-      }
-      return res.status(200).json(user);
-    } catch (error) {
-      return res.status(500).json({ message: "Bad Request" });
-    }
-  },
-  getSpecificUser: async (req, res) => {
-    try {
-      const user = await AuthService.getSpecificUser(req.params.userId);
-      if (!user) {
-        return res.status(400).json({ message: "No User Found" });
-      }
-      return res.status(200).json(user);
-    } catch (error) {
-      return res.status(500).json({ message: "Bad Request" });
-    }
-  },
-  updateUser: async (req, res) => {
-    try {
-      const user = await AuthService.updateUser(req.params.userId, req.body);
-      if (!user) {
-        return res.status(400).json({ message: "No User Found" });
-      }
-      return res
-        .status(200)
-        .json({ message: "User Updated Successfully", user });
-    } catch (error) {
-      return res.status(500).json({ message: "Bad Request" });
-    }
-  },
-  deleteUser: async (req, res) => {
-    try {
-      const user = await AuthService.deleteUser(req.params.userId);
-      if (!user) {
-        return res.status(400).json({ message: "No User Found" });
-      }
-      return res.status(200).json({ message: "User Deleted Successfully" });
-    } catch (error) {
-      return res.status(500).json({ message: "Bad Request" });
+      return res.status(400).json({error:"something went wrong"});
     }
   },
 };
-
-export default AuthControler;
+export default authController;

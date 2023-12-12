@@ -1,14 +1,12 @@
-// likeModel.js
-import { DataTypes } from "sequelize";
 import sequelize from "../Db/config.js";
-import postModel from "./postModel.js"; // Ensure correct capitalization
+import userModel from "./userModel.js";
+import postModel from "./postModel.js";
 
-const likeModel = sequelize.define("Like", {
-  // You might want to add additional fields based on your requirements
-});
+const likeModel = sequelize.define("like, {}");
 
-// Define the association
-//likeModel.belongsTo(postModel);
-//postModel.hasMany(likeModel);
+userModel.hasMany(likeModel);
+likeModel.belongsTo(userModel);
+postModel.hasMany(likeModel);
+likeModel.belongsTo(postModel);
 
-export default likeModel;
+export default likeModel
